@@ -13,13 +13,14 @@ A Nextflow pipeline for assembling and polishing mitogenomes from long-read (ONT
 
 ## Quick start — pipeline
 
+Pixi tasks are wired into every Nextflow process (each module invokes its tools via `pixi run --manifest-path ${baseDir}/pixi.toml …` from inside its `script:` block), so you do **not** wrap the `nextflow` invocation itself in `pixi run`. Just put `nextflow` on your `PATH` (e.g. `pixi global add nextflow`, or use a system install) and run the pipeline directly:
+
 ```bash
 cd BettaMt
-pixi install
-pixi run nextflow run . -profile local --input samples.csv --outdir results/
+nextflow run . -profile local --input samples.csv --outdir results/
 ```
 
-See [`BettaMt/README.md`](BettaMt/README.md) for the full manual, profiles (local / slurm), and input format.
+`pixi install` is still required once on the host, so the processes can resolve their pixi environment via `${baseDir}/pixi.toml`. See [`BettaMt/README.md`](BettaMt/README.md) for the full manual, profiles (local / slurm), and input format.
 
 ## The agentic interface
 
