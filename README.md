@@ -16,11 +16,26 @@ A Nextflow pipeline for assembling and polishing mitogenomes from long-read (ONT
 Pixi tasks are wired into every Nextflow process (each module invokes its tools via `pixi run --manifest-path ${baseDir}/pixi.toml …` from inside its `script:` block), so you do **not** wrap the `nextflow` invocation itself in `pixi run`. Just put `nextflow` on your `PATH` (e.g. `pixi global add nextflow`, or use a system install) and run the pipeline directly:
 
 ```bash
-cd BettaMt
-nextflow run . -profile local --input samples.csv --outdir results/
+# ONT (long reads)
+nextflow run main.nf -profile local \
+  --platform ont \
+  --reads    data/reads.fastq \
+  --ref_mito data/reference.fasta \
+  --size     16k \
+  --taxon    vertebrate
+
+# Illumina (paired-end short reads)
+nextflow run main.nf -profile local \
+  --platform   illumina \
+  --reads      data/sample_R1.fastq.gz \
+  --reads_r2   data/sample_R2.fastq.gz \
+  --ref_mito   data/reference.fasta \
+  --rounds     15 \
+  --sample_id  betta_splendens \
+  --taxon      vertebrate
 ```
 
-`pixi install` is still required once on the host, so the processes can resolve their pixi environment via `${baseDir}/pixi.toml`. See [`BettaMt/README.md`](BettaMt/README.md) for the full manual, profiles (local / slurm), and input format.
+`pixi install` is still required once on the host, so the processes can resolve their pixi environment via `${baseDir}/pixi.toml`. See [`BettaMt/README.md`](BettaMt/README.md) for the full parameter table, the `slurm` profile, and the output layout.
 
 ## The agentic interface
 
