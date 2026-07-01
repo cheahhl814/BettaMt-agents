@@ -1,0 +1,20 @@
+# Nextflow runtime artifacts
+.nextflow/
+.nextflow.log*
+work/
+results/
+.nextflow.config.local
+
+# Pixi environment
+.pixi/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test data — bring your own
+test/
+test_data/
+data/

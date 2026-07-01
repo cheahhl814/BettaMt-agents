@@ -1,0 +1,32 @@
+[workspace]
+channels = ["conda-forge", "bioconda"]
+name = "cirlator"
+platforms = ["linux-64"]
+version = "0.2.0"
+
+[dependencies]
+# --- Shared / long-read (ONT) ---
+circlator = "*"
+setuptools = "65.6.3.*"
+python = "3.11.6.*"
+getorganelle = ">=1.7.7.1,<2"
+sympy = ">=1.14.0,<2"
+seqkit = "*"
+bbtools = "*"
+minimap2 = "*"
+samtools = ">=1.18"
+flye = "*"
+trnascan-se = "*"
+bedtools = "*"
+racon = "*"
+
+# --- Short-read (Illumina) additions ---
+# pypolca is the Python re-implementation of POLCA (Zimin & Salzberg 2020).
+# It transitively pulls bwa, freebayes, samtools>=1.18 (already pinned above).
+# bwa is required for the align+sort step inside pypolca; pin explicitly to
+# guarantee it is on PATH for the polca process.
+pypolca = ">=0.4.0"
+bwa = ">=0.7.17"
+
+[pypi-dependencies]
+certifi = "*"
