@@ -16,14 +16,13 @@ keywords:
   - agent-skills-standard
 license: "LicenseNotSet"
 authors:
-  - family-names: <Your Last Name>
-    given-names: <Your Given Names>
-    affiliation: <Your Institution>
-    orcid: https://orcid.org/<YOUR-ORCID>
+  - family-names: Cheah
+    given-names: Hong Leong
+    orcid: https://orcid.org/0000-0001-9172-2487
 contact:
-  - family-names: <Your Last Name>
-    given-names: <Your Given Names>
-    email: <you@example.org>
+  - family-names: Cheah
+    given-names: Hong Leong
+    email: hongleong.cheah@monash.edu
 references:
   - type: software
     title: "Nextflow"
