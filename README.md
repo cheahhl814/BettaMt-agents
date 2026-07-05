@@ -39,7 +39,7 @@ nextflow run main.nf -profile local \
 
 ## The agentic interface
 
-The `.agents/skills/` directory holds four SKILL.md files following the [Agent Skills standard](https://agentskills.io/specification). Each skill is a self-contained Markdown capability package: a YAML frontmatter (name + description) plus the body that an LLM agent reads at call time.
+The `.agents/skills/` directory holds five SKILL.md files following the [Agent Skills standard](https://agentskills.io/specification). Each skill is a self-contained Markdown capability package: a YAML frontmatter (name + description) plus the body that an LLM agent reads at call time.
 
 ### How a tool decides to load a skill
 
@@ -60,7 +60,7 @@ If you want them available across all your projects, copy or symlink the whole b
 | OpenCode | `~/.config/opencode/skills/` or `~/.agents/skills/` |
 | Codex | `~/.agents/skills/` |
 
-### The four skills
+### The five skills
 
 | Skill | Frontmatter trigger | Purpose | Output |
 |---|---|---|---|
@@ -68,8 +68,9 @@ If you want them available across all your projects, copy or symlink the whole b
 | `bettamt-preflight` | *"prepare params for BettaMt"*, *"preflight"*, *"set up a run"* | Produce `params.json` + `params.rationale.md` from FASTQ + reference | `params.json`, `params.rationale.md` |
 | `bettamt-debug` | *"BettaMt failed"*, *"diagnose the run"*, *"why did my mitogenome assembly fail"* | Diagnose a failed run from `.nextflow.log` / `work/`, write `diagnosis.md` with top-3 hypotheses | `diagnosis.md` |
 | `bettamt-qc` | *"check my polished mitogenome"*, *"QC the assembly"*, *"did it assemble correctly?"* | Check the polished mitogenome, write `report.md` with pass/warn/fail verdicts | `report.md` |
+| `bettamt-annotate-qc` | *"check my gene annotation"*, *"annotate QC"*, *"did the BLAST annotation work"* | Check the `blast_extract_cds.py` output (FASTA / GFF3 / BED), write `annotation-report.md` | `annotation-report.md` |
 
-**Recommended entry point:** `bettamt-run`. It auto-detects the current stage (preflight / run / debug / qc) and routes.
+**Recommended entry point:** `bettamt-run`. It auto-detects the current stage (preflight / run / debug / qc / annotate-qc) and routes.
 
 ### What a typical session looks like
 
@@ -96,6 +97,20 @@ Agent:  [loads bettamt-debug/SKILL.md, inspects work/...]
         taxonomy lookup.
 ```
 
+If you supplied `--ref_gff` / `--ref_gb` (gene annotation reference), the
+pipeline also runs `ANNOTATE_GENES` after polishing. The recommended QC order
+in that case is **assembly QC first, then annotation QC**:
+
+```
+You:    How does the annotated mitogenome look?
+
+Agent:  [loads bettamt-qc, writes report.md (assembly checks)]
+        — Polishing OK, 16,554 bp, 22 tRNAs, GC 44%, circular
+        [then loads bettamt-annotate-qc, writes annotation-report.md]
+        — 38 genes annotated, all canonical names, D-loop 1,331 bp,
+          no length anomalies vs reference
+```
+
 ### Where the agent writes outputs
 
 By default the agent operates in `$BETA_MT_HOME` (the pipeline directory). All handoff files are written *next to* the pipeline, not inside it, so the pipeline working directory stays clean.
@@ -106,16 +121,20 @@ bioinformatics/
 │   ├── bettamt-run/
 │   ├── bettamt-preflight/
 │   ├── bettamt-debug/
-│   └── bettamt-qc/
+│   ├── bettamt-qc/
+│   └── bettamt-annotate-qc/    # post-annotation QC
 ├── BettaMt/               # the pipeline (Nextflow, pixi)
 │   ├── main.nf
+│   ├── bin/
+│   │   └── blast_extract_cds.py    # gene annotation helper
 │   ├── conf/
 │   ├── modules/
 │   └── subworkflows/
 ├── params.json            # produced by bettamt-preflight
 ├── params.rationale.md    # produced by bettamt-preflight
 ├── diagnosis.md           # produced by bettamt-debug (only on failure)
-└── report.md              # produced by bettamt-qc (only on success)
+├── report.md              # produced by bettamt-qc (only on success)
+└── annotation-report.md   # produced by bettamt-annotate-qc (only if --ref_gff/--ref_gb)
 ```
 
 If you'd rather keep the run outputs in a separate directory, set `RUN_DIR` in the shell where the agent is running; the skills will write `params.json` / `diagnosis.md` / `report.md` there instead.
@@ -128,7 +147,7 @@ The skills share a small, bounded schema — that's the entire interface between
 |---|---|---|
 | Agent → Pipeline | `params.json` | Nextflow `-params-file` JSON; `params.rationale.md` is the human-readable companion explaining every choice |
 | Pipeline → Agent | `.nextflow.log`, `work/*/.command.*`, `results/**` | Nextflow-native files; the agent reads them, doesn't parse them |
-| Agent → Human | `diagnosis.md`, `report.md` | Top-3-hypotheses / pass-warn-fail tables in the agentic-format style |
+| Agent → Human | `diagnosis.md`, `report.md`, `annotation-report.md` | Top-3-hypotheses / pass-warn-fail tables in the agentic-format style |
 
 The pipeline never reads the Markdown files. The agent never reads `.nf` internals. The boundary is the JSON + the run log.
 
@@ -136,13 +155,13 @@ The pipeline never reads the Markdown files. The agent never reads `.nf` interna
 
 > The agent reasons; the pipeline executes.
 
-When you encounter a new failure mode, add a row to the signature table in `bettamt-debug/SKILL.md` rather than writing a script. When you discover a new QC concern, add a check section to `bettamt-qc/SKILL.md`. The skill files are versioned alongside the pipeline and improved by the same person who runs the pipeline — that's how the agentic layer accumulates domain expertise.
+When you encounter a new failure mode, add a row to the signature table in `bettamt-debug/SKILL.md` rather than writing a script. When you discover a new QC concern, add a check section to `bettamt-qc/SKILL.md` (or `bettamt-annotate-qc/SKILL.md` for annotation output). The skill files are versioned alongside the pipeline and improved by the same person who runs the pipeline — that's how the agentic layer accumulates domain expertise.
 
 ### Customizing for your environment
 
-- **`BETA_MT_HOME`** — if the pipeline is not at `../BettaMt` relative to the skills folder, set this in your shell: `export BETA_MT_HOME=/path/to/BettaMt`. All four skills honor it.
+- **`BETA_MT_HOME`** — if the pipeline is not at `../BettaMt` relative to the skills folder, set this in your shell: `export BETA_MT_HOME=/path/to/BettaMt`. All five skills honor it.
 - **`RUN_DIR`** — defaults to `$BETA_MT_HOME`. Override to write `params.json` / `diagnosis.md` / `report.md` somewhere else.
-- **Adding a new skill** — copy any of the four as a template, give it a unique `name` in the frontmatter, and write a clear `description` listing the trigger phrases. The agent will pick it up at next session start.
+- **Adding a new skill** — copy any of the five as a template, give it a unique `name` in the frontmatter, and write a clear `description` listing the trigger phrases. The agent will pick it up at next session start.
 
 ## Citing
 

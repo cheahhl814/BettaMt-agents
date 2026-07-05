@@ -52,4 +52,4 @@ ln -s "$(pwd)/bettamt-annotate-qc"   ~/.pi/agent/skills/
 
 ## Extending
 
-The four skills share a common principle: **the agent reasons; the pipeline executes**. When you encounter a new failure mode, add a row to the signature table in `bettamt-debug/SKILL.md` rather than writing a script. When you discover a new QC concern, add a check section to `bettamt-qc/SKILL.md` (or `bettamt-annotate-qc/SKILL.md` for annotation output). The skill files are versioned alongside the pipeline (or separately, as you prefer).
+The five skills share a common principle: **the agent reasons; the pipeline executes**. When you encounter a new failure mode, add a row to the signature table in `bettamt-debug/SKILL.md` rather than writing a script. When you discover a new QC concern, add a check section to `bettamt-qc/SKILL.md` (or `bettamt-annotate-qc/SKILL.md` for annotation output). The skill files are versioned alongside the pipeline (or separately, as you prefer).
