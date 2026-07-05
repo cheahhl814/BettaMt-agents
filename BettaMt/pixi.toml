@@ -20,6 +20,12 @@ trnascan-se = "*"
 bedtools = "*"
 racon = "*"
 
+# --- Gene annotation (optional, both platforms) ---
+# blast_extract_cds.py uses BLAST+ to transfer gene annotations from a
+# reference mitogenome to the assembled target. Optional — only required if
+# --ref_gff or --ref_gb is provided.
+blast = ">=2.14"
+
 # --- Short-read (Illumina) additions ---
 # pypolca is the Python re-implementation of POLCA (Zimin & Salzberg 2020).
 # It transitively pulls bwa, freebayes, samtools>=1.18 (already pinned above).

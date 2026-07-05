@@ -21,12 +21,18 @@ include { GETORGANELLE_ASM } from '../modules/local/getorganelle_asm.nf'
 include { FIRSTGENE        } from '../modules/local/firstgene.nf'
 include { CIRCLATOR        } from '../modules/local/circlator.nf'
 include { POLCA            } from '../modules/local/polca.nf'
+include { ANNOTATE_GENES   } from '../modules/local/annotate_genes.nf'
 
 workflow ILLUMINA_MITOGENOME {
 
     take:
     ch_reads_paired  // channel: [ val(sample_id), path(r1), path(r2) ]
     ch_seed          // channel: [ path(seed_fasta) ]
+    ch_ref_gff       // channel: [ path(gff3) ]  — optional, for gene annotation
+    ch_ref_fasta     // channel: [ path(fasta) ] — optional, companion to ref_gff
+    ch_ref_gb        // channel: [ path(gb) ]    — optional, alternative to gff+fasta
+    ch_trnascan      // channel: [ path(binary) ] — optional
+    skip_trna        // value:    boolean
     rounds           // value:    GetOrganelle -R value
     taxon            // value:    tRNAscan-SE model (e.g. "vertebrate")
 
@@ -45,9 +51,22 @@ workflow ILLUMINA_MITOGENOME {
         .join(QC_SHORT.out.trimmed, by: 0)
     POLCA(ch_polca_in)
 
+    // Gene annotation — only if a reference annotation was provided
+    if (ch_ref_gff || ch_ref_gb) {
+        ANNOTATE_GENES(
+            POLCA.out.polished,
+            ch_ref_gff ?: [],
+            ch_ref_fasta ?: [],
+            ch_ref_gb ?: [],
+            ch_trnascan ?: [],
+            skip_trna,
+        )
+    }
+
     emit:
-    polished = POLCA.out.polished
-    qc       = QC_SHORT.out.report
-    asm_logs = GETORGANELLE_ASM.out.logs
-    vcf      = POLCA.out.vcf
+    polished   = POLCA.out.polished
+    qc         = QC_SHORT.out.report
+    asm_logs   = GETORGANELLE_ASM.out.logs
+    vcf        = POLCA.out.vcf
+    annotation = ANNOTATE_GENES.out
 }

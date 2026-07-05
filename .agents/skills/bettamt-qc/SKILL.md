@@ -49,12 +49,12 @@ Each check produces a verdict (✅ pass, ⚠️ warn, ❌ fail) and a one-line r
 pixi run --manifest-path "$BETA_MT_HOME/pixi.toml" seqkit fx2tab -n -l "$POLISHED"
 ```
 
-| Length | Verdict |
-|---|---|
-| 14 000–20 000 bp (typical vertebrate mt) | ✅ |
-| 10 000–14 000 or 20 000–25 000 | ⚠️ possible duplication or truncation |
-| < 10 000 or > 25 000 | ❌ likely not a mitogenome (or NUMT) |
-| Multiple contigs of similar length | ⚠️ fragmented — verify with `grep -c '>' "$POLISHED"` |
+| Length                                   | Verdict                                               |
+| ---------------------------------------- | ----------------------------------------------------- |
+| 14 000–20 000 bp (typical vertebrate mt) | ✅                                                     |
+| 10 000–14 000 or 20 000–25 000           | ⚠️ possible duplication or truncation                 |
+| < 10 000 or > 25 000                     | ❌ likely not a mitogenome (or NUMT)                   |
+| Multiple contigs of similar length       | ⚠️ fragmented — verify with `grep -c '>' "$POLISHED"` |
 
 ### Check 2 — circularity
 
@@ -66,11 +66,11 @@ pixi run --manifest-path "$BETA_MT_HOME/pixi.toml" seqkit subseq -r 1:75 "$POLIS
 # A circular mitogenome should show the same 75 bp at start and end
 ```
 
-| Observation | Verdict |
-|---|---|
-| First 75 bp == last 75 bp (exact or near-exact) | ✅ circularized |
-| First 75 bp ≈ last 75 bp with 1–3 mismatches | ✅ circular (Racon/POLCA polish artifact) |
-| No obvious repeat | ⚠️ may be linear — check upstream contig |
+| Observation                                     | Verdict                                  |
+| ----------------------------------------------- | ---------------------------------------- |
+| First 75 bp == last 75 bp (exact or near-exact) | ✅ circularized                           |
+| First 75 bp ≈ last 75 bp with 1–3 mismatches    | ✅ circular (Racon/POLCA polish artifact) |
+| No obvious repeat                               | ⚠️ may be linear — check upstream contig |
 
 ### Check 3 — tRNA gene set
 
@@ -79,12 +79,12 @@ pixi run --manifest-path "$BETA_MT_HOME/pixi.toml" tRNAscan-SE -M vert -O -o /tm
 awk '$5 != "" {print $5}' /tmp/qc-trna.out | sort -u
 ```
 
-| tRNAs found | Verdict |
-|---|---|
-| 22 unique tRNAs (vertebrate standard) | ✅ complete |
-| 20–21 | ⚠️ nearly complete; missing tRNA could be a real biology or a model miss |
-| < 18 | ❌ incomplete — likely a fragment or wrong model |
-| Run with `-M anonym` if < 15 found | re-check; this should always pass after re-run |
+| tRNAs found                           | Verdict                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------ |
+| 22 unique tRNAs (vertebrate standard) | ✅ complete                                                               |
+| 20–21                                 | ⚠️ nearly complete; missing tRNA could be a real biology or a model miss |
+| < 18                                  | ❌ incomplete — likely a fragment or wrong model                          |
+| Run with `-M anonym` if < 15 found    | re-check; this should always pass after re-run                           |
 
 ### Check 4 — coverage profile (NUMT risk)
 
@@ -116,10 +116,10 @@ awk '{a[NR]=$3} END {
 }' /tmp/qc.depth
 ```
 
-| Observation | Verdict |
-|---|---|
-| max coverage ≤ 5× median | ✅ clean |
-| 5–10× median, single window | ⚠️ possible NUMT — inspect with IGV |
+| Observation                 | Verdict                                       |
+| --------------------------- | --------------------------------------------- |
+| max coverage ≤ 5× median    | ✅ clean                                       |
+| 5–10× median, single window | ⚠️ possible NUMT — inspect with IGV           |
 | > 10× median, single window | ❌ strong NUMT signal — investigate that locus |
 
 If the user wants a plot, generate a simple ASCII histogram of the depth file (or a PNG with `python -c "import matplotlib..."` if `matplotlib` is available — it is **not** in the BettaMt pixi env by default, so prefer ASCII).
@@ -133,11 +133,11 @@ pixi run --manifest-path "$BETA_MT_HOME/pixi.toml" minimap2 -ax $([ "$PLATFORM" 
 # Simpler: just report alignment length and number of substitutions from CIGAR
 ```
 
-| Identity to ref | Verdict |
-|---|---|
-| > 95% | ✅ expected (same / closely related species) |
-| 85–95% | ⚠️ congeneric — verify expected divergence |
-| < 85% | ❌ suspicious — might be a different locus |
+| Identity to ref | Verdict                                     |
+| --------------- | ------------------------------------------- |
+| > 95%           | ✅ expected (same / closely related species) |
+| 85–95%          | ⚠️ congeneric — verify expected divergence  |
+| < 85%           | ❌ suspicious — might be a different locus   |
 
 ### Check 6 — GC content and skew
 
@@ -145,11 +145,11 @@ pixi run --manifest-path "$BETA_MT_HOME/pixi.toml" minimap2 -ax $([ "$PLATFORM" 
 pixi run --manifest-path "$BETA_MT_HOME/pixi.toml" seqkit fx2tab -n -l -g "$POLISHED"
 ```
 
-| GC% | Verdict |
-|---|---|
-| 35–50% (most vertebrates) | ✅ |
-| 25–35 or 50–60% | ⚠️ unusual but possible (e.g. AT-rich fish mitogenomes) |
-| < 25% or > 60% | ❌ suspicious |
+| GC%                       | Verdict                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| 35–50% (most vertebrates) | ✅                                                       |
+| 25–35 or 50–60%           | ⚠️ unusual but possible (e.g. AT-rich fish mitogenomes) |
+| < 25% or > 60%            | ❌ suspicious                                            |
 
 ## 3. Output contract — write `report.md`
 
@@ -238,3 +238,4 @@ This requires adding `matplotlib` to `pixi.toml` if the user wants plots regular
 - If QC fails because `--taxon` was wrong (Check 3 misses tRNAs) → recommend the user re-invoke `bettamt-preflight` with corrected params, then `nextflow run -resume`
 - If coverage profile shows NUMT and it's a recurring problem → suggest sub-sampling the input reads at the `bait_mito` / `qc_short` stage, not at assembly
 - If the report is "FAIL" on a non-recoverable axis (e.g. contig too short) → the user should re-design the experiment, not tweak params
+- After this skill reports PASS → hand off to `bettamt-annotate-qc` if `$RUN_DIR/results/annotation/annotated_genes.fasta` exists (i.e. the run included `--ref_gff` or `--ref_gb`). Annotation QC is meaningless on a broken assembly, so only invoke it after assembly QC has passed.

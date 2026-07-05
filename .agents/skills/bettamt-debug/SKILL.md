@@ -93,6 +93,21 @@ Match the failing command's stderr / exit code against these known patterns. **A
 | `circlator fixstart: cannot find genes_fa` | Upstream FIRSTGENE failed | Re-run with `-resume` after fixing FIRSTGENE |
 | `circlator clean: contigs shorter than --min_contig_length` | Mitogenome is fragmented | Lower `--min_contig_length 12000` to `8000` in `modules/local/getorganelle_filter.nf` (only if you trust the input) |
 
+### Gene annotation (ANNOTATE_GENES / blast_extract_cds.py)
+
+Only runs if `--ref_gff` or `--ref_gb` was supplied.
+
+| Signature in `.command.err` | Likely cause | Suggested fix |
+|---|---|---|
+| `blastn: command not found` | pixi env missing `blast` | `pixi add blast` in `$BETA_MT_HOME/pixi.toml` (currently `>=2.14`) |
+| `tRNAscan-SE: command not found` | tRNAscan-SE not on PATH; the script's auto-detect in `TRNASCAN_SEARCH_PATHS` missed the pixi env | Pass `--trnascan` explicitly to the run, or set the pixi env as the active shell |
+| `WARNING: reference missing: ...` | Reference GFF/GB doesn't have all 13 PCGs (common for incomplete annotations) | Use a more complete reference; warnings are non-fatal and the present genes still annotate correctly |
+| `No D-loop detected (no gap >= 100 bp)` | Mitogenome is very compact; the D-loop might be < 100 bp or the assembly didn't include it | Verify the polished contig actually contains the D-loop region (length should be 14–20 kb); if shorter, the assembly is truncated |
+| `FileNotFoundError: --ref-fasta` | Used `--ref-gff` without `--ref-fasta` and the GFF3 has no `##FASTA` section | Add `--ref_gff_fasta` to params.json or switch to `--ref_gb` (self-contained) |
+| `No BLAST hit` for most genes | Reference is too divergent (different order/family) | Use a closer reference; consider dropping annotation entirely if no suitable reference exists |
+| `BLAST hit coordinates overlap / duplicated gene` | The polished mitogenome has genuine gene duplications (NUMT or recent duplication) | Inspect with IGV; this is biological, not a pipeline bug |
+| `KeyError: 'D-loop'` or similar from blast_extract_cds.py | Bug in gene name normalization; the `GENE_ALIASES` dict should be extended | Open a bug report with the offending reference file |
+
 ### Resource / scheduler
 
 | Signature in `nextflow.log` | Likely cause | Suggested fix |

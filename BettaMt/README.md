@@ -24,6 +24,11 @@ reads + ref_mito
     (trnF / Phe)                       │
       │                                ▼
       └─────────────────► 6. RACON  — Polish with ONT raw reads
+                                          │
+                                          ▼ (optional, with --ref_gff/--ref_gb)
+                                       7. ANNOTATE_GENES — blast_extract_cds.py
+                                          Produces .fasta, .gff3, .bed for all 13 PCGs,
+                                          2 rRNAs, 22 tRNAs, and the D-loop.
 ```
 
 ### Short-read path (`--platform illumina`)
@@ -43,7 +48,11 @@ R1 + R2  (paired-end FASTQ)
     (trnF / Phe)                       │
       │                                ▼
       └────────────────► 5. POLCA    — Polish with paired Illumina reads
-                                         (--careful mode)
+                                         │   (--careful mode)
+                                         ▼ (optional, with --ref_gff/--ref_gb)
+                                      6. ANNOTATE_GENES — blast_extract_cds.py
+                                         Produces .fasta, .gff3, .bed for all 13 PCGs,
+                                         2 rRNAs, 22 tRNAs, and the D-loop.
 ```
 
 ## Dependencies
@@ -70,6 +79,7 @@ All bioinformatics tools are managed by `pixi` and declared in `pixi.toml`. Only
 | **BWA** | Short-read alignment (for POLCA) | Illumina |
 | **freebayes** | Variant calling (for POLCA, via pypolca) | Illumina |
 | **pypolca** | Short-read polishing (POLCA re-impl.) | Illumina |
+| **BLAST+** | Gene annotation via homology (BLASTN) | both (optional) |
 
 ## Installation
 
@@ -128,6 +138,33 @@ nextflow run main.nf -profile local \
 | `--sample_id` | Sample identifier (defaults to `--reads` basename) | `betta_splendens` |
 | `--taxon` | tRNAscan-SE model (`mammal` / `vertebrate`) | `vertebrate` |
 
+### Gene annotation (optional, both platforms)
+
+If a reference annotation is provided, `blast_extract_cds.py` runs after polishing
+to produce a per-gene FASTA, GFF3, and BED of all 13 PCGs + 2 rRNAs + 22 tRNAs +
+the D-loop control region.  Supply either a GFF3+FASTA pair or a single GenBank
+file — not both.
+
+```bash
+# With GFF3 + reference FASTA
+nextflow run main.nf -profile local \
+  --platform ont --reads reads.fastq --ref_mito ref.fasta \
+  --ref_gff ref.gff3 --ref_gff_fasta ref.fasta
+
+# With a self-contained GenBank file
+nextflow run main.nf -profile local \
+  --platform illumina --reads R1.fq.gz --reads_r2 R2.fq.gz --ref_mito ref.fasta \
+  --ref_gb reference.gb
+```
+
+| Parameter | Description | Example |
+|---|---|---|
+| `--ref_gff` | GFF3 reference annotation (with `--ref_gff_fasta`) | `data/human.gff3` |
+| `--ref_gff_fasta` | Reference genome FASTA companion to `--ref_gff` | `data/human.fasta` |
+| `--ref_gb` | GenBank reference annotation (alternative to GFF3) | `data/human.gb` |
+| `--trnascan` | Path to tRNAscan-SE binary (auto-detected otherwise) | `/opt/tRNAscan-SE` |
+| `--skip_trna` | Skip tRNA annotation (PCGs + rRNAs only) | `--skip_trna` |
+
 ### Cluster execution
 
 ```bash
@@ -149,7 +186,8 @@ results/
 ├── <sample_id>/     # Illumina: GetOrganelle assembly workdir (one per sample)
 ├── flye/            # ONT: Flye assembly output (contigs, assembly graph)
 ├── circlator/       # Rotated, circularized contig (both platforms)
-└── polish/          # *_racon.fasta (ONT) or *_polca.fasta (Illumina)
+├── polish/          # *_racon.fasta (ONT) or *_polca.fasta (Illumina)
+└── annotation/      # both (optional): annotated_genes.{fasta,gff3,bed}
 ```
 
 ## Project layout
@@ -163,6 +201,8 @@ BettaMt/
 │   ├── base.config               # shared process defaults
 │   ├── local.config              # local-executor profile
 │   └── slurm.config              # SLURM per-process resources
+├── bin/                          # local helper scripts invoked by modules
+│   └── blast_extract_cds.py      # homology-based gene annotation (ANNOTATE_GENES)
 ├── modules/local/                # one process per file, UPPER_CASE
 │   ├── bait_mito.nf
 │   ├── flye.nf
@@ -172,7 +212,8 @@ BettaMt/
 │   ├── racon.nf
 │   ├── qc_short.nf               # Illumina: sequali + fastp
 │   ├── getorganelle_asm.nf       # Illumina: short-read assembler
-│   └── polca.nf                  # Illumina: pypolca short-read polisher
+│   ├── polca.nf                  # Illumina: pypolca short-read polisher
+│   └── annotate_genes.nf         # both: wraps bin/blast_extract_cds.py
 └── subworkflows/
     ├── ont_mitogenome.nf
     └── illumina_mitogenome.nf

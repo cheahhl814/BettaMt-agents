@@ -30,6 +30,7 @@ Ask once, in one question batch if possible:
 | FASTQ path(s) — R1 for Illumina, single file for ONT | yes | — |
 | R2 path (Illumina only) | conditional | — |
 | `--ref_mito` reference mitogenome | yes | — |
+| Reference annotation (GFF3 + FASTA, or GenBank) for gene annotation | no | skip `ANNOTATE_GENES` step |
 | Organism / common name | no | `unknown` |
 | Library strategy (WGS / mitogenome-capture / genome-skim) | no | `unknown` |
 | Sequencer (ONT PromethION / MinION / Illumina NovaSeq / etc.) | no | infer from FASTQ |
@@ -127,6 +128,17 @@ Apply these rules. Each recommendation **must** cite the evidence in `params.rat
 - Default: strip `_R1`/`_R2`/`.fastq`/`.fq`/`.gz` from the R1 basename
 - Example: `betta_R1.fastq.gz` → `betta`
 
+### Gene annotation parameters (optional, both platforms)
+
+If the user supplied a reference annotation, propagate it into `params.json`. Accept **either** GFF3 + companion FASTA **or** a single GenBank file — never both.
+
+- `--ref_gff` and `--ref_gff_fasta`: GFF3 + companion reference genome FASTA
+- `--ref_gb`: self-contained GenBank file
+
+If the user did **not** supply a reference annotation, set all three keys to `""` in `params.json` and `ANNOTATE_GENES` will be skipped silently. Never invent one.
+
+If the user is unsure whether to provide one, default to skipping. Annotation is most useful when the reference is the same species or a close congener; a divergent reference produces noisy BLAST hits that fail the QC length-tolerance check.
+
 ## 4. Output contract — write exactly these files
 
 ### `params.json` (hard schema, all keys required unless marked optional)
@@ -140,13 +152,19 @@ Apply these rules. Each recommendation **must** cite the evidence in `params.rat
   "size":      "16k",
   "taxon":     "vertebrate",
   "rounds":    15,
-  "sample_id": "my_sample"
+  "sample_id": "my_sample",
+  "ref_gff":       "",
+  "ref_gff_fasta": "",
+  "ref_gb":        "",
+  "trnascan":      "",
+  "skip_trna":     false
 }
 ```
 
 - For ONT: omit `reads_r2` and `sample_id` (or set to `null` and the dispatcher will ignore)
 - For Illumina: `rounds` is required; `size` can be omitted
 - `taxon` is always required (shared by both paths)
+- All five annotation keys (`ref_gff`, `ref_gff_fasta`, `ref_gb`, `trnascan`, `skip_trna`) are required; leave `""`/`false` to skip annotation
 
 ### `params.rationale.md` (audit trail — **do not skip**)
 
@@ -170,6 +188,7 @@ Pipeline:  $BETA_MT_HOME (commit <hash if available>)
 - --rounds 15 (Illumina)    : coverage …× falls in 50–500× band
 - --taxon vertebrate        : tRNAscan found Phe/His/Pro marker set
 - --sample_id foo           : derived from R1 basename
+- --ref_gff / --ref_gb      : <provided; same species / congener / skipped>
 
 ## Warnings
 - (none, or list any that fired)

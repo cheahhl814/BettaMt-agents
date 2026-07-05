@@ -27,6 +27,12 @@ Try to detect automatically **before** asking:
 # A polished mitogenome exists → run succeeded, time for QC
 if ls "$RUN_DIR"/results/polish/*_racon.fasta  "$RUN_DIR"/results/polish/*_polca.fasta >/dev/null 2>&1; then
     STAGE="qc"
+# Annotation output exists and has been checked → done
+elif [ -f "$RUN_DIR/annotation-report.md" ]; then
+    STAGE="done"
+# Annotation output exists but no annotation report yet → annotate-qc
+elif [ -f "$RUN_DIR"/results/annotation/annotated_genes.fasta ]; then
+    STAGE="annotate-qc"
 # A diagnosis already exists → debug done, walk through it
 elif [ -f "$RUN_DIR/diagnosis.md" ]; then
     STAGE="review-diagnosis"
@@ -56,6 +62,7 @@ If auto-detection is ambiguous, ask one short question:
 | `run`              | Show the run command (see §3). Get explicit confirmation. Then run.                                      |
 | `debug`            | Invoke `bettamt-debug`. It writes `diagnosis.md`. Come back when done.                                   |
 | `qc`               | Invoke `bettamt-qc`. It writes `report.md`.                                                              |
+| `annotate-qc`      | Invoke `bettamt-annotate-qc`. It writes `annotation-report.md`.                                          |
 | `review-diagnosis` | Read `$RUN_DIR/diagnosis.md` with the user, recommend Option A from its "Recommended next action" block. |
 
 **Do not skip preflight.** Even if the user supplies params manually, recommend running `bettamt-preflight` first to validate the choices and produce the audit trail.
@@ -99,9 +106,13 @@ nextflow run main.nf -profile slurm -params-file "$RUN_DIR/params.json" -resume
 | Outcome                          | Next skill                                                        |
 | -------------------------------- | ----------------------------------------------------------------- |
 | Exit 0, polished FASTA exists    | `bettamt-qc`                                                      |
+| Exit 0, annotation files exist   | `bettamt-annotate-qc` (if `--ref_gff`/`--ref_gb` was supplied)    |
 | Exit non-zero, no `diagnosis.md` | `bettamt-debug`                                                   |
 | `diagnosis.md` already exists    | walk the user through Option A from it                            |
 | User says "looks good" after QC  | done — point them to `$RUN_DIR/report.md` and `$RUN_DIR/results/` |
+
+If the run succeeded and produced both polished FASTA and annotated genes, the recommended order is:
+**`bettamt-qc` first** (checks assembly integrity), then **`bettamt-annotate-qc`** (checks gene transfer). Annotation QC is meaningless on a broken assembly, so do assembly QC first.
 
 After invoking any next-step skill, **explicitly hand off** — don't make the user discover the next action. Example:
 
@@ -130,6 +141,7 @@ All artifacts (`params.json`, `diagnosis.md`, `report.md`) are produced by the o
 | User says                    | What to do                                                                                                                               |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | "Looks good" after QC        | Summarize: pipeline version, polished FASTA path, key QC verdicts                                                                        |
-| "Can I publish this?"        | Point them to `$RUN_DIR/report.md` + `$RUN_DIR/params.rationale.md` — both are audit-trail artifacts suitable for supplementary material |
+| "Looks good" after annotate-qc | Summarize: gene count, gene types, any BLAST warnings; point to `annotation-report.md`                                                  |
+| "Can I publish this?"        | Point them to `$RUN_DIR/report.md`, `$RUN_DIR/annotation-report.md`, and `$RUN_DIR/params.rationale.md` — all are audit-trail artifacts suitable for supplementary material |
 | "I want to run more samples" | Recommend making a new `$RUN_DIR` per sample, symlink `$BETA_MT_HOME`                                                                    |
 | "How do I cite this?"        | `cat "$BETA_MT_HOME/README.md"` — citations block at the bottom                                                                          |
