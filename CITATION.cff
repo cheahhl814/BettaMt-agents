@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use BettaMt in your research, please cite the software itself. For the betta-mitogenome application, also cite the upstream tools listed under `references` below."
-title: "BettaMt — Betta fish mitogenome assembly pipeline and agentic skills"
+title: "BettaMt — Mitogenome assembly pipeline and agentic skills"
 type: software
 date-released: 2026-07-01
 url: "https://github.com/cheahhl814/BettaMt-agents"

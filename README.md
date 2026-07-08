@@ -1,4 +1,4 @@
-# BettaMt — betta fish mitogenome assembly pipeline + agentic skills
+# BettaMt — Mitogenome assembly pipeline + agentic skills
 
 A Nextflow pipeline for assembling and polishing mitogenomes from long-read (ONT) and short-read (Illumina) sequencing data, paired with a set of agentic skills that operate around the pipeline.
 
