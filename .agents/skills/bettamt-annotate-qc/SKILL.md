@@ -10,7 +10,7 @@ This skill runs **after** `bettamt-qc` has confirmed the assembly is sane. It ne
 ## 0. Locate the pipeline and the run
 
 ```bash
-: "${BETA_MT_HOME:=$(cd "$(dirname "$SKILL_DIR")/../BettaMt" 2>/dev/null && pwd)}"
+: "${BETA_MT_HOME:=$(cd "$SKILL_DIR/../../../BettaMt" 2>/dev/null && pwd)}"
 test -f "$BETA_MT_HOME/main.nf" || { echo "Cannot locate BettaMt. Set BETA_MT_HOME."; exit 1; }
 
 RUN_DIR="${RUN_DIR:-$BETA_MT_HOME}"

@@ -1,6 +1,6 @@
 ---
 name: bettamt-run
-description: Run BettaMt end-to-end. Use when a user wants to assemble a mitogenome and may not know the full workflow. Walks them through preflight → nextflow run → qc/debug. Triggers: "run BettaMt", "assemble my mitogenome", "I have reads and a reference", "bettamt run", "start a BettaMt run", "bettamt pipeline".
+description: Run BettaMt end-to-end, including applying the user-side nextflow.config override. Use when a user wants to assemble a mitogenome and may not know the full workflow. Walks them through preflight → nextflow run → qc/debug. Triggers: "run BettaMt", "assemble my mitogenome", "I have reads and a reference", "bettamt run", "start a BettaMt run", "bettamt pipeline", "nextflow config local machine", "scale down BettaMt for laptop".
 ---
 
 # bettamt-run — BettaMt end-to-end orchestrator
@@ -12,7 +12,7 @@ This skill is a thin router. It does not duplicate logic from the other three `b
 Same convention as the other skills: `$BETA_MT_HOME` env var, or sibling `../BettaMt`.
 
 ```bash
-: "${BETA_MT_HOME:=$(cd "$(dirname "$SKILL_DIR")/../BettaMt" 2>/dev/null && pwd)}"
+: "${BETA_MT_HOME:=$(cd "$SKILL_DIR/../../../BettaMt" 2>/dev/null && pwd)}"
 test -f "$BETA_MT_HOME/main.nf" || { echo "Cannot locate BettaMt. Set BETA_MT_HOME."; exit 1; }
 
 # Run dir is wherever the user wants outputs to land. Default to the pipeline root.
@@ -69,16 +69,38 @@ If auto-detection is ambiguous, ask one short question:
 
 ## 3. The run command (only fires at the `run` stage)
 
+### Detect the user-side config override
+
+`bettamt-preflight` may have written a `nextflow.config.<env>.local` file next to `params.json` (see `bettamt-preflight` §2.5). `-c` is layered, so the user override is applied *on top of* `$BETA_MT_HOME/conf/{base,local,slurm}.config`. Always check for it before running:
+
+```bash
+# Choose the profile from §1 (or ask if not set yet)
+: "${BETA_PROFILE:=local}"   # or "slurm" or "container"
+
+PROFILE_LOWER=$(echo "$BETA_PROFILE" | tr '[:upper:]' '[:lower:]')
+USER_CONFIG="$RUN_DIR/nextflow.config.${PROFILE_LOWER}.local"
+if [ -f "$USER_CONFIG" ]; then
+  echo "Applying user-side override: $USER_CONFIG"
+  CONFIG_FLAG="-c $USER_CONFIG"
+else
+  echo "No user override found at $USER_CONFIG — using $BETA_MT_HOME/conf/{base,local,slurm}.config defaults"
+  echo "(If the machine is not tuned for this profile, run bettamt-preflight to generate one.)"
+  CONFIG_FLAG=""
+fi
+```
+
+The override is most important for `-profile local` because the local profile inherits the minimal base.config defaults (`cpus=1, memory='4 GB'`). Without an override, every BettaMt process runs on 1 cpu / 4 GB — enough for bait-mapping and small jobs, but **`GETORGANELLE_ASM` (SPAdes) will OOM** on a typical laptop without an override that bumps its memory to ≥ 64 GB.
+
 ### Show the user the command
 
 ```bash
 cd "$BETA_MT_HOME"
 
-# Local (workstation):
-nextflow run main.nf -profile local  -params-file "$RUN_DIR/params.json"
+# Local (workstation) — with override if present:
+nextflow run main.nf -profile local  $CONFIG_FLAG -params-file "$RUN_DIR/params.json"
 
-# SLURM (cluster):
-nextflow run main.nf -profile slurm  -params-file "$RUN_DIR/params.json"
+# SLURM (cluster) — with override if present:
+nextflow run main.nf -profile slurm  $CONFIG_FLAG -params-file "$RUN_DIR/params.json"
 ```
 
 Ask: **"This will start a Nextflow run with the params above. OK to proceed? (yes / no / dry-run)"**
@@ -86,20 +108,20 @@ Ask: **"This will start a Nextflow run with the params above. OK to proceed? (ye
 ### Recommend dry-run for first-time users
 
 ```bash
-nextflow run main.nf -profile local -params-file "$RUN_DIR/params.json" -dry-run
+nextflow run main.nf -profile local $CONFIG_FLAG -params-file "$RUN_DIR/params.json" -dry-run
 ```
 
-The `-dry-run` flag shows what Nextflow *would* execute (the DAG, with all process directives resolved) without actually running anything. Invaluable for inexperienced users to see the planned graph, catch typos in `params.json`, and understand resource allocation before spending SLURM credits.
+The `-dry-run` flag shows what Nextflow *would* execute (the DAG, with all process directives resolved) without actually running anything. Invaluable for inexperienced users to see the planned graph, catch typos in `params.json`, and understand resource allocation before spending SLURM credits. With the user override applied, the dry-run will also show the per-process `cpus`/`memory` you actually configured — which is a quick sanity check that the override is being picked up.
 
 ### Resume is a separate, distinct command
 
 If the user says "I already ran this, just resume", do NOT use the bare `nextflow run` command. Use:
 
 ```bash
-nextflow run main.nf -profile slurm -params-file "$RUN_DIR/params.json" -resume
+nextflow run main.nf -profile slurm $CONFIG_FLAG -params-file "$RUN_DIR/params.json" -resume
 ```
 
-`-resume` picks up cached steps from `.nextflow/` and re-runs only what failed or what changed. Always suggest it as the *first* retry after a failure.
+`-resume` picks up cached steps from `.nextflow/` and re-runs only what failed or what changed. **Important**: if you changed the user override (e.g. bumped `GETORGANELLE_ASM.memory`) between the failed and resumed run, `-resume` will retry the failed task with the new memory setting. Always suggest it as the *first* retry after a failure.
 
 ## 4. After the run
 
