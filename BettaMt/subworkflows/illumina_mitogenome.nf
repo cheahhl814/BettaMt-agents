@@ -52,7 +52,7 @@ workflow ILLUMINA_MITOGENOME {
     POLCA(ch_polca_in)
 
     // Gene annotation — only if a reference annotation was provided
-    if (ch_ref_gff || ch_ref_gb) {
+    if (params.ref_gff || params.ref_gb) {
         ANNOTATE_GENES(
             POLCA.out.polished,
             ch_ref_gff ?: [],
@@ -68,5 +68,4 @@ workflow ILLUMINA_MITOGENOME {
     qc         = QC_SHORT.out.report
     asm_logs   = GETORGANELLE_ASM.out.logs
     vcf        = POLCA.out.vcf
-    annotation = ANNOTATE_GENES.out
 }

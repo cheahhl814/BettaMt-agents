@@ -41,7 +41,7 @@ workflow ONT_MITOGENOME {
     RACON(CIRCLATOR.out.contig, BAIT_MITO.out.baited)
 
     // Gene annotation — only if a reference annotation was provided
-    if (ch_ref_gff || ch_ref_gb) {
+    if (params.ref_gff || params.ref_gb) {
         ANNOTATE_GENES(
             RACON.out,
             ch_ref_gff ?: [],
@@ -57,5 +57,4 @@ workflow ONT_MITOGENOME {
     circlator  = CIRCLATOR.out.contig
     baited     = BAIT_MITO.out.baited
     flye_gfa   = FLYE.out.gfa
-    annotation = ANNOTATE_GENES.out
 }
