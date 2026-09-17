@@ -1,19 +1,70 @@
-# BettaMt — Mitogenome assembly pipeline + agentic skills
+# BettaMt — Mitogenome assembly pipeline and agentic skills
 
-A Nextflow pipeline for assembling and polishing mitogenomes from long-read (ONT) and short-read (Illumina) sequencing data, paired with a set of agentic skills that operate around the pipeline.
+[![Version](https://img.shields.io/badge/version-0.2.0-blue)](#-installation)
+[![Type](https://img.shields.io/badge/type-nextflow%20pipeline%20%2B%20agent%20skills-blueviolet)](#-pipeline-overview)
+[![Agent Skills](https://img.shields.io/badge/skills-agent%20skills%20standard-teal)](https://agentskills.io/specification)
 
-## What's in this repo
+A Nextflow DSL2 pipeline for assembling and polishing mitogenomes from long-read (ONT) and short-read (Illumina) sequencing data, paired with five agentic skills that prepare parameters, run the pipeline, QC the assembly, interpret failures, and check annotation output.
 
-| Path | What it is | Ship it? |
-|---|---|---|
-| `BettaMt/` | Nextflow DSL2 pipeline (pixi-managed) | ✅ |
-| `.agents/skills/` | Agent Skills (SKILL.md) for pi, OpenCode, Codex | ✅ |
-| `CITATION.cff` | GitHub "Cite this repository" metadata | ✅ |
-| `.gitignore` | Excludes Nextflow `work/`, `.nextflow/`, test data | ✅ |
+**Repository**: https://github.com/cheahhl814/BettaMt-agents
 
-## Quick start — pipeline
+> [!NOTE]
+> Current version: **v0.2.0** (updated 2026-09-17).
 
-Pixi tasks are wired into every Nextflow process (each module invokes its tools via `pixi run --manifest-path ${baseDir}/pixi.toml …` from inside its `script:` block), so you do **not** wrap the `nextflow` invocation itself in `pixi run`. Just put `nextflow` on your `PATH` (e.g. `pixi global add nextflow`, or use a system install) and run the pipeline directly:
+## Contents
+
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Pipeline overview](#-pipeline-overview)
+- [Tools](#-tools)
+- [Repository layout](#-repository-layout)
+- [Hard guarantees](#-hard-guarantees)
+- [Provenance](#provenance)
+
+## 🚀 Installation
+
+This repo pairs a pipeline with **agent skills** — Markdown capability packages that an AI agent loads and follows. The recommended install path is to let your AI agent set it up.
+
+**Option A — give your agent this prompt (recommended):**
+
+```text
+Install the BettaMt agentic skills from
+https://github.com/cheahhl814/BettaMt-agents —
+clone the repository into a project directory your agent scans for
+`.agents/skills/`, then run `pixi install` inside the `BettaMt/` directory
+to resolve the pinned pipeline tools. Read each skill's SKILL.md to
+understand its role and its Input/Output contract, and confirm when the
+environment is ready.
+```
+
+**Option B — manual install:**
+
+```bash
+git clone https://github.com/cheahhl814/BettaMt-agents.git
+cd BettaMt-agents/BettaMt
+pixi install
+```
+
+> [!TIP]
+> `pixi install` resolves every pinned tool from `pixi.toml` (channels: conda-forge, bioconda) into an isolated `.pixi/` environment — no system-wide installs, no version conflicts with other pipelines.
+
+## 💡 Usage
+
+The five skills are **model-invoked**: the agent reads each skill's `description` frontmatter at session start, and a user prompt matching a trigger phrase causes the agent to load the skill and follow it. Project-local `.agents/skills/` are auto-discovered from your working directory up to the repo root.
+
+### Natural-language prompts that trigger the skills
+
+| Skill | Example prompts | What it produces |
+|:------|:----------------|:-----------------|
+| `bettamt-preflight` | *"set up BettaMt"*, *"what params for BettaMt"*, *"scale down BettaMt for laptop"* | `params.json` + `params.rationale.md` + machine-specific `nextflow.config` override |
+| `bettamt-run` | *"run BettaMt"*, *"assemble my mitogenome"*, *"I have reads and a reference"* | A completed Nextflow run (walks preflight → run → QC/debug) |
+| `bettamt-debug` | *"BettaMt failed"*, *"why did BettaMt fail"*, *"exit 137"*, *"Flye failed"* | `diagnosis.md` with top-3 hypotheses |
+| `bettamt-qc` | *"check my mitogenome"*, *"is the mitogenome complete"*, *"post-assembly QC"* | `report.md` with pass/warn/fail verdicts |
+| `bettamt-annotate-qc` | *"check annotation"*, *"did the BLAST annotation work"*, *"annotate QC"* | `annotation-report.md` |
+
+### Running the pipeline manually
+
+If you prefer to drive the pipeline yourself:
 
 ```bash
 # ONT (long reads)
@@ -35,138 +86,97 @@ nextflow run main.nf -profile local \
   --taxon      vertebrate
 ```
 
-`pixi install` is still required once on the host, so the processes can resolve their pixi environment via `${baseDir}/pixi.toml`. See [`BettaMt/README.md`](BettaMt/README.md) for the full parameter table, the `slurm` profile, and the output layout.
+`pixi install` is required once on the host so each Nextflow process can resolve its tools via `pixi run --manifest-path ${baseDir}/pixi.toml` from inside its `script:` block — you do **not** wrap the `nextflow` invocation itself in `pixi run`. Put `nextflow` on your `PATH` (e.g. `pixi global add nextflow`).
 
-## The agentic interface
+> [!TIP]
+> `--size` is the estimated mitogenome size (`16k` typical for *Betta*); `--taxon` selects the tRNAscan-SE model (`mammal` / `vertebrate`); `--rounds` are GetOrganelle extension rounds (10–15 typical, Illumina only). Full parameter tables: [`BettaMt/README.md`](BettaMt/README.md). Profiles: `local` (default) and `slurm` (explicit per-process resources).
 
-The `.agents/skills/` directory holds five SKILL.md files following the [Agent Skills standard](https://agentskills.io/specification). Each skill is a self-contained Markdown capability package: a YAML frontmatter (name + description) plus the body that an LLM agent reads at call time.
+## 🔬 Pipeline overview
 
-### How a tool decides to load a skill
+The agentic layer follows a phased evidence chain. Each phase consumes the artifacts of the previous phase and refuses to proceed if the upstream artifact is missing.
 
-The standard `description` frontmatter in each `SKILL.md` is what the agent sees at session start. A user prompt that matches a trigger phrase in the description is what causes the agent to `read` the rest of the file and behave as the skill prescribes. The skills are *model-invoked* — the agent chooses when to load them, not the user.
+| # | Phase | Goal | Skill | Artifact produced |
+|:--|:------|:-----|:------|:------------------|
+| **1** | **Preflight** | Validate FASTQ + reference, decide `--platform`/`--size`/`--rounds`/`--taxon` and the execution environment | `bettamt-preflight/` | `params.json`, `params.rationale.md`, `nextflow.config` override |
+| **2** | **Run** | Execute the workflow end-to-end with the override applied | `bettamt-run/` | Nextflow outputs (`results/**`) |
+| **3** | **Debug** (on failure) | Interpret `.nextflow.log` / `work/` against the signature library | `bettamt-debug/` | `diagnosis.md` |
+| **4** | **Assembly QC** | Completeness, circularity, NUMTs, publishability verdicts | `bettamt-qc/` | `report.md` |
+| **5** | **Annotation QC** (optional, `--ref_gff`/`--ref_gb`) | Verify gene count, names, length tolerance, D-loop detection from `blast_extract_cds.py` output | `bettamt-annotate-qc/` | `annotation-report.md` |
 
-**Auto-discovered by** (project-local, scanned from `cwd` upward to the repo root):
-
-- ✅ **pi** — this is the tool writing this README. Scans `.agents/skills/` after the project is marked trusted.
-- ✅ **OpenCode** — scans `.agents/skills/` and walks up.
-- ✅ **Codex** — scans `.agents/skills/` and walks up.
-- ❌ **Claude Code** — does not scan `.agents/skills/` (see [anthropics/claude-code#33733](https://github.com/anthropics/claude-code/issues/33733)). If you also need Claude Code to see these, add a symlink in the project root: `ln -s .agents/skills .claude/skills`.
-
-If you want them available across all your projects, copy or symlink the whole bundle to your user-scope path:
-
-| Tool | User-scope path |
-|---|---|
-| pi | `~/.pi/agent/skills/` |
-| OpenCode | `~/.config/opencode/skills/` or `~/.agents/skills/` |
-| Codex | `~/.agents/skills/` |
-
-### The five skills
-
-| Skill | Frontmatter trigger | Purpose | Output |
-|---|---|---|---|
-| `bettamt-run` | *"run BettaMt"*, *"assemble my mitogenome"*, *"start a BettaMt run"*, *"bettamt run"* | End-to-end orchestrator: detect the user's stage and route to the right skill | Dispatches |
-| `bettamt-preflight` | *"prepare params for BettaMt"*, *"preflight"*, *"set up a run"* | Produce `params.json` + `params.rationale.md` from FASTQ + reference | `params.json`, `params.rationale.md` |
-| `bettamt-debug` | *"BettaMt failed"*, *"diagnose the run"*, *"why did my mitogenome assembly fail"* | Diagnose a failed run from `.nextflow.log` / `work/`, write `diagnosis.md` with top-3 hypotheses | `diagnosis.md` |
-| `bettamt-qc` | *"check my polished mitogenome"*, *"QC the assembly"*, *"did it assemble correctly?"* | Check the polished mitogenome, write `report.md` with pass/warn/fail verdicts | `report.md` |
-| `bettamt-annotate-qc` | *"check my gene annotation"*, *"annotate QC"*, *"did the BLAST annotation work"* | Check the `blast_extract_cds.py` output (FASTA / GFF3 / BED), write `annotation-report.md` | `annotation-report.md` |
-
-**Recommended entry point:** `bettamt-run`. It auto-detects the current stage (preflight / run / debug / qc / annotate-qc) and routes.
-
-### What a typical session looks like
-
-```
-You:    Run BettaMt on this betta mitogenome. I have ONT reads and a closely
-        related reference.
-
-Agent:  [loads .agents/skills/bettamt-run/SKILL.md]
-        [detects STAGE=preflight, loads bettamt-preflight/SKILL.md]
-        [asks 2-3 questions about your reads and reference]
-        [writes params.json + params.rationale.md]
-
-You:    Proceed.
-
-Agent:  [loads bettamt-run again, detects STAGE=run, asks for confirmation]
-        nextflow run main.nf -profile slurm -params-file params.json
-        [runs it]
-
-You:    It failed with "Bait_Mito exit code 1".
-
-Agent:  [loads bettamt-debug/SKILL.md, inspects work/...]
-        Wrote diagnosis.md — top hypothesis: bait database was indexed with the
-        wrong lineage. Recommend Option A: re-run bait_mito with corrected
-        taxonomy lookup.
-```
-
-If you supplied `--ref_gff` / `--ref_gb` (gene annotation reference), the
-pipeline also runs `ANNOTATE_GENES` after polishing. The recommended QC order
-in that case is **assembly QC first, then annotation QC**:
-
-```
-You:    How does the annotated mitogenome look?
-
-Agent:  [loads bettamt-qc, writes report.md (assembly checks)]
-        — Polishing OK, 16,554 bp, 22 tRNAs, GC 44%, circular
-        [then loads bettamt-annotate-qc, writes annotation-report.md]
-        — 38 genes annotated, all canonical names, D-loop 1,331 bp,
-          no length anomalies vs reference
-```
+> [!TIP]
+> Read each skill's `SKILL.md` for the full procedure and its signature library (stderr pattern → cause → fix).
 
 ### Where the agent writes outputs
 
-By default the agent operates in `$BETA_MT_HOME` (the pipeline directory). All handoff files are written *next to* the pipeline, not inside it, so the pipeline working directory stays clean.
-
-```
-bioinformatics/
-├── .agents/skills/        # the agentic layer
-│   ├── bettamt-run/
-│   ├── bettamt-preflight/
-│   ├── bettamt-debug/
-│   ├── bettamt-qc/
-│   └── bettamt-annotate-qc/    # post-annotation QC
-├── BettaMt/               # the pipeline (Nextflow, pixi)
-│   ├── main.nf
-│   ├── bin/
-│   │   └── blast_extract_cds.py    # gene annotation helper
-│   ├── conf/
-│   ├── modules/
-│   └── subworkflows/
-├── params.json            # produced by bettamt-preflight
-├── params.rationale.md    # produced by bettamt-preflight
-├── diagnosis.md           # produced by bettamt-debug (only on failure)
-├── report.md              # produced by bettamt-qc (only on success)
-└── annotation-report.md   # produced by bettamt-annotate-qc (only if --ref_gff/--ref_gb)
-```
-
-If you'd rather keep the run outputs in a separate directory, set `RUN_DIR` in the shell where the agent is running; the skills will write `params.json` / `diagnosis.md` / `report.md` there instead.
+By default the agent operates in `$BETA_MT_HOME` (the pipeline directory). All handoff files are written *next to* the pipeline, not inside it, so the pipeline working directory stays clean. Set `RUN_DIR` to write them elsewhere — all five skills honor both variables.
 
 ### The handoff contract
 
-The skills share a small, bounded schema — that's the entire interface between agent and pipeline:
-
 | Direction | Artifact | Schema |
 |---|---|---|
-| Agent → Pipeline | `params.json` | Nextflow `-params-file` JSON; `params.rationale.md` is the human-readable companion explaining every choice |
-| Pipeline → Agent | `.nextflow.log`, `work/*/.command.*`, `results/**` | Nextflow-native files; the agent reads them, doesn't parse them |
-| Agent → Human | `diagnosis.md`, `report.md`, `annotation-report.md` | Top-3-hypotheses / pass-warn-fail tables in the agentic-format style |
-
-The pipeline never reads the Markdown files. The agent never reads `.nf` internals. The boundary is the JSON + the run log.
-
-### Design principle
+| Agent → Pipeline | `params.json` | Nextflow `-params-file` JSON; `params.rationale.md` explains every choice |
+| Pipeline → Agent | `.nextflow.log`, `work/*/.command.*`, `results/**` | Nextflow-native files; the agent reads them, doesn't parse `.nf` internals |
+| Agent → Human | `diagnosis.md`, `report.md`, `annotation-report.md` | Top-3-hypotheses / pass-warn-fail tables |
 
 > The agent reasons; the pipeline executes.
 
-When you encounter a new failure mode, add a row to the signature table in `bettamt-debug/SKILL.md` rather than writing a script. When you discover a new QC concern, add a check section to `bettamt-qc/SKILL.md` (or `bettamt-annotate-qc/SKILL.md` for annotation output). The skill files are versioned alongside the pipeline and improved by the same person who runs the pipeline — that's how the agentic layer accumulates domain expertise.
+## 🧰 Tools
 
-### Customizing for your environment
+All tools are resolved from conda-forge/bioconda via the pinned `BettaMt/pixi.toml`.
 
-- **`BETA_MT_HOME`** — if the pipeline is not at `../BettaMt` relative to the skills folder, set this in your shell: `export BETA_MT_HOME=/path/to/BettaMt`. All five skills honor it.
-- **`RUN_DIR`** — defaults to `$BETA_MT_HOME`. Override to write `params.json` / `diagnosis.md` / `report.md` somewhere else.
-- **Adding a new skill** — copy any of the five as a template, give it a unique `name` in the frontmatter, and write a clear `description` listing the trigger phrases. The agent will pick it up at next session start.
+| Tool | Version | Role |
+|:-----|:--------|:-----|
+| `flye` | * | Long-read (ONT) mitogenome assembler |
+| `getorganelle` | ≥1.7.7.1, <2 | Organelle/mitogenome assembly (Illumina path) |
+| `circlator` | * | Assembly circularization |
+| `racon` | * | Long-read polishing |
+| `pypolca` | ≥0.4.0 | Illumina polishing (POLCA; pulls `bwa`, `freebayes`) |
+| `bwa` | ≥0.7.17 | Alignment for the polca step |
+| `minimap2` | * | ONT read alignment to reference |
+| `samtools` | ≥1.18 | BAM/sam operations |
+| `bbmap` | * | Read QC utilities |
+| `seqkit` | * | Sequence stats and manipulation |
+| `trnascan-se` | * | tRNA detection (`--taxon` model) |
+| `bedtools` | * | Interval operations for annotation QC |
+| `blast` | ≥2.14 | Gene annotation transfer (`blast_extract_cds.py`) |
+| `python` | 3.11.6.* | Skill and helper scripts |
 
-## Citing
+## 📁 Repository layout
 
-If you use BettaMt in published research, see [`CITATION.cff`](CITATION.cff). The file is rendered by GitHub as a "Cite this repository" button. Fill in the placeholder author / ORCID fields before release.
+```text
+BettaMt-agents/
+├── .agents/skills/            # the agentic layer (Agent Skills standard)
+│   ├── bettamt-run/           # end-to-end orchestrator
+│   ├── bettamt-preflight/     # params preparation
+│   ├── bettamt-debug/         # failure interpreter
+│   ├── bettamt-qc/            # post-assembly QC
+│   └── bettamt-annotate-qc/   # post-annotation QC
+├── BettaMt/                   # the pipeline (Nextflow DSL2, pixi)
+│   ├── main.nf
+│   ├── bin/
+│   │   └── blast_extract_cds.py   # gene annotation helper
+│   ├── conf/                  # base/local/slurm configs
+│   ├── modules/
+│   ├── subworkflows/          # ont_mitogenome.nf, illumina_mitogenome.nf
+│   ├── pixi.toml              # pinned tool environment (pixi install)
+│   └── README.md              # full parameter tables
+├── test_data/
+├── CITATION.cff               # rendered by GitHub as "Cite this repository"
+└── README.md                  # this file
+```
 
-## License
+## 🔒 Hard guarantees
 
-No license file is included; default copyright applies in jurisdictions that recognize it. If you intend this to be reusable, add a `LICENSE` file (MIT / Apache-2.0 / GPL-3.0) before pointing anyone at the repo.
+- **Filesystem evidence chain** — the boundary between agent and pipeline is the filesystem (`params.json` in, logs and `results/` out), not agent memory; the pipeline never reads the Markdown handoffs, the agent never parses `.nf` internals.
+- **Reproducible environments** — every tool is pinned in `pixi.toml` and resolved via pixi; each Nextflow process invokes its tools through that manifest.
+- **Rationale, not just output** — `params.rationale.md` records why every parameter was chosen, so a run's setup is auditable after the fact.
+- **Bounded failure interpretation** — `bettamt-debug` maps observed stderr onto a signature library and writes ranked hypotheses; it does not free-restyle the log.
+- **Clean working directory** — handoff files land next to the pipeline (`or `$RUN_DIR`), never inside it.
+
+## Provenance
+
+The five skills follow the [Agent Skills standard](https://agentskills.io/specification) and the AiX-BIO skill convention; this README follows the [bioinfo-skill-creator](https://github.com/cheahhl814/bioinfo-skill-creator) v1.2.0 README standard.
+
+Upstream citations (Nextflow, Flye, GetOrganelle, Circlator, Racon, POLCA, tRNAscan-SE, `bait_mito`) are listed in [`CITATION.cff`](CITATION.cff), which GitHub renders as the "Cite this repository" button.
+
+**License**: not yet set (`LicenseNotSet` in `CITATION.cff`) — default copyright applies; add a `LICENSE` (MIT / Apache-2.0 / GPL-3.0) before pointing external users at the repo.
