@@ -1,0 +1,46 @@
+[workspace]
+channels = ["conda-forge", "bioconda"]
+name = "cirlator"
+platforms = ["linux-64"]
+version = "0.2.0"
+
+[dependencies]
+# --- Shared / long-read (ONT) ---
+circlator = "*"
+setuptools = "65.6.3.*"
+python = "3.11.6.*"
+getorganelle = ">=1.7.7.1,<2"
+sympy = ">=1.14.0,<2"
+seqkit = "*"
+bbmap = "*"
+minimap2 = "*"
+samtools = ">=1.18"
+flye = "*"
+trnascan-se = "*"
+bedtools = "*"
+racon = "*"
+
+# --- Gene annotation (optional, both platforms) ---
+# blast_extract_cds.py uses BLAST+ to transfer gene annotations from a
+# reference mitogenome to the assembled target. Optional — only required if
+# --ref_gff or --ref_gb is provided.
+blast = ">=2.14"
+
+# --- Short-read (Illumina) additions ---
+# fastp: adapter/quality/length trimming (QC_SHORT). Was missing from this
+# manifest until 2026-10-18 — QC_SHORT silently resolved a host-global fastp
+# otherwise; discovered during the bash-recipes manual walkthrough.
+fastp = ">=0.24"
+# sequali: read-QC reports (QC_SHORT step 1) — also missing from the manifest
+# until 2026-10-18 (same class of bug as fastp: silent host-global resolution).
+sequali = ">=0.14"
+
+# pypolca is the Python re-implementation of POLCA (Zimin & Salzberg 2020).
+# It transitively pulls bwa, freebayes, samtools>=1.18 (already pinned above).
+# bwa is required for the align+sort step inside pypolca; pin explicitly to
+# guarantee it is on PATH for the polca process.
+pypolca = ">=0.4.0"
+bwa = ">=0.7.17"
+
+[pypi-dependencies]
+certifi = "*"

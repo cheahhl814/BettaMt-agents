@@ -18,3 +18,15 @@ results/
 test/
 test_data/
 data/
+
+# Skill-level run artifacts (per-run, regenerable — never push)
+runs/
+params.rationale.md
+nextflow.config.*.local
+diagnosis.md
+report.md
+annotation-report.md
+battle-test-report.md
+preflight.md
+skill-built.md
+docs-corpus/.fingerprints/

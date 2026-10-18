@@ -1,0 +1,31 @@
+[workspace]
+name = "bettamt"
+version = "1.0.0"
+description = "BettaMt mitogenome agent skill: preflight -> run (manual bash recipes default, Nextflow runner opt-in) -> qc -> debug, with CPU-only smoke tests."
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64"]
+
+# The skill's tool environment lives in runners/nextflow-runner/pixi.toml (the
+# single pinned manifest shared by BOTH runners). This root workspace only
+# carries the skill-level tasks.
+
+[tasks]
+# See bin/skill-update-check.py for the verdict legend
+# (UP-TO-DATE / LOCAL-AHEAD / BEHIND-BY-N / OFFLINE / NO-ORIGIN / NO-GIT).
+update-check = "python3 bin/skill-update-check.py"
+
+# CPU-only verification harnesses:
+smoke-recipes = "bash runners/bash-recipes/test_smoke.sh"
+smoke-pipeline = "bash runners/nextflow-runner/test_pipeline_smoke.sh"
+smoke = { cmd = """
+bash runners/bash-recipes/test_smoke.sh &&
+bash runners/nextflow-runner/test_pipeline_smoke.sh
+""" }
+
+[feature.structure.tasks]
+# Structural gate (stdlib-only linter; in this dev tree it comes from the
+# sibling skill-forge checkout):
+lint = "python3 ../skill-forge/bin/skill-lint.py ."
+
+[environments]
+structure = ["structure"]
