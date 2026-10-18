@@ -85,6 +85,11 @@ flye, getorganelle (`.py` entry points), circlator, racon, bedtools,
 trnascan-se, fastp, sequali, pypolca, blast. Verbatim CLI references for every
 pinned version live in `docs-corpus/<tool>/cli-reference.md`.
 
+An **external agent-side dependency** (optional, degrades gracefully):
+[read-qc-trimming](https://github.com/cheahhl814/read-qc-trimming) — preflight
+can route reads through its QC→trim→QC sandwich before BettaMt consumes them;
+otherwise the pinned in-run `QC_SHORT` stage (sequali + fastp) applies.
+
 ## 🔄 Update check
 
 ```bash

@@ -346,6 +346,7 @@ If the user is unsure whether to provide one, default to skipping. Annotation is
 - For ONT: omit `reads_r2` and `sample_id` (or set to `null` and the dispatcher will ignore)
 - For Illumina: `rounds` is required; `size` can be omitted
 - `taxon` is always required (shared by both paths)
+- read_qc_route:        <"in-run" (default) | "external read-qc-trimming" (+ trim summary if external)>
 - All five annotation keys (`ref_gff`, `ref_gff_fasta`, `ref_gb`, `trnascan`, `skip_trna`) are required; leave `""`/`false` to skip annotation
 
 ### `nextflow.config.<env>.local` (machine-specific override — see §2.5)
@@ -404,6 +405,25 @@ cd "$BETA_MT_HOME"
 nextflow run runners/nextflow-runner/main.nf -profile <env> -c nextflow.config.<env>.local -params-file params.json
 \`\`\`
 ```
+
+### g) Read QC / trimming route (SP — external skill vs in-run stage)
+
+BettaMt's Illumina path trims in-run (`QC_SHORT`: sequali + fastp). The
+**read-qc-trimming** skill (https://github.com/cheahhl814/read-qc-trimming,
+deployed at `~/.agents/skills/read-qc-trimming/`) offers a stronger
+agent-side sandwich: raw-QC → trim → post-QC → Go/No-Go loop with multiqc
+reporting. Decide once here and record it:
+
+| Evidence (from §2 read stats / §2.5 evidence collection) | Recommendation |
+|---|---|
+| Reads are clean (no adapter signal, healthy quality) — routine mito run | **in-run** `QC_SHORT` (default; no external dependency needed) |
+| Adapter content, 3'-decay, poly-G, or degraded/short-fragment library suspected | **external**: run `read-qc-trimming` first; its trimmed R1/R2 become `params.reads`/`params.reads_r2` |
+| Batch QC / multiqc reporting wanted across many samples | **external** (its multiqc + Go/No-Go loop is built for batches) |
+| ONT path + pre-cleaning requested | **external, user-directed only** — fastplong shortens reads upstream of BettaMt's 14–20 kb bait window; warn explicitly |
+
+If the external route is chosen, run the sandwich BEFORE finalizing
+`params.json` and point `reads`/`reads_r2` at the trimmed outputs; log the
+route + the trimming summary stats in `params.rationale.md`.
 
 ## 5. What NOT to do
 

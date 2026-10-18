@@ -75,6 +75,14 @@ The recipes mirror the NF module scripts **command-for-command**; `bash-recipes/
 
 Every sub-skill encodes its ask-user stop points as `SP<n>` tables using **Evidence → Recommend → Options**. Do not auto-pick what a stop point owns (platform fork, taxon model, execution mode, annotation route); do not ask what preflight already recorded in `params.json`.
 
+## External dependencies
+
+**[read-qc-trimming](https://github.com/cheahhl814/read-qc-trimming)** (v6+; deployed at `~/.agents/skills/read-qc-trimming/`) — the agent-side read QC/trimming sandwich (sequali + multiqc raw QC → fastp / fastplong / trim_galore → post-trim QC → Go/No-Go loop).
+
+- **When to delegate**: preflight evidence shows adapter contamination, 3'-end quality decay, poly-G tails, degenerate/short-fragment libraries, or the user wants kit-specific stringency or batch-wide multiqc reporting. `preflight/bettamt-preflight` proposes the routing (SP — Evidence → Recommend → Options); `run/bettamt-run` §3c carries it out.
+- **Default remains in-run**: the pinned `QC_SHORT` stage (`sequali` + `fastp` via the shared pixi manifest) is always available and is what the smoke tests verify — the bundle degrades gracefully when the external skill is not deployed.
+- **ONT caveat**: delegating pre-cleaning for ONT reads (read-qc-trimming's `fastplong`) shortens reads *before* BettaMt's 14–20 kb bait window — user-directed only, flagged by preflight.
+
 ## Self-update check
 
 ```bash

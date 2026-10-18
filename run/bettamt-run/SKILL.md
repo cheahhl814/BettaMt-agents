@@ -116,7 +116,25 @@ bash "$BETA_MT_HOME/runners/bash-recipes/annotate_genes.sh" \
     --ref-gff "<params.ref_gff>" --ref-fasta "<params.ref_gff_fasta>"   # or --ref-gb "<params.ref_gb>"
 ```
 
-### 3b. nextflow mode — opt-in runner
+### 3b. External QC/trim delegation (read-qc-trimming — when `read_qc_route` says external)
+
+If preflight recorded `read_qc_route: external` (or the user explicitly asks for
+the QC sandwich), invoke the **read-qc-trimming** skill
+(`~/.agents/skills/read-qc-trimming/SKILL.md`, v6+) on the RAW reads before §3a:
+
+1. Its sandwich (sequali+multiqc raw QC → trim → post-QC → Go/No-Go) writes
+   trimmed FASTQs plus a before/after summary into the run dir.
+2. Feed the TRIMMED paths into the recipes (§3a `--reads`/`--reads-r2`), and
+   record the route + summary in `params.rationale.md`. If `params.json` still
+   points at raw reads, send the user back to preflight (never edit params
+   mid-run).
+3. **Fallback**: if the skill is not deployed or its Go/No-Go ends NO-GO after
+   3 iterations, fall back to the in-run `QC_SHORT` stage — the recipes never
+   hard-require it.
+4. **ONT pre-clean**: user-directed only; fastplong truncation upstream of the
+   14–20 kb bait window can strip reads that the bait stage expects whole.
+
+### 3c. nextflow mode — opt-in runner
 
 Check for the preflight-written user override, then run from the runner tree:
 
