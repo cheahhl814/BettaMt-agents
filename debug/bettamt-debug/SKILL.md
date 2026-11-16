@@ -1,8 +1,8 @@
 ---
 name: bettamt-debug
 description: Phase 4 of the bettamt skill bundle — failure interpreter for a failed BettaMt run in EITHER mode: manual bash-recipe failures (identified by the last [stage k/N] header) or the opt-in Nextflow runner (nextflow log, exit 1/137 OOM-kill, profile-vs-machine mismatch). Use when a run errors, a stage dies, a process is OOM-killed, or output looks truncated. Triggers: "bettamt failed", "BettaMt error", "why did BettaMt fail", "bettamt stage failed", "GetOrganelle no valid assembly graph", "Flye failed", "Racon OOM", "out of memory", "exit 137", "spades OOM".
-version: 1.0.0
-updated: "2026-10-18"
+version: 1.0.1
+updated: "2026-11-16"
 triggers:
   - "bettamt failed"
   - "BettaMt error"
@@ -13,6 +13,7 @@ triggers:
   - "Racon OOM"
   - "exit 137"
   - "spades OOM"
+disable-model-invocation: true
 ---
 
 # bettamt-debug — BettaMt failure interpreter

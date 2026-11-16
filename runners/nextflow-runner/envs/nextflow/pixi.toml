@@ -1,6 +1,6 @@
 [workspace]
 name = "bettamt-nextflow-runner"
-version = "1.0.0"
+version = "1.0.1"
 description = "Nextflow runtime for the BettaMt runner smoke test (DAG build / stub-run only; pipeline tools live in the parent pixi.toml)."
 channels = ["conda-forge", "bioconda"]
 platforms = ["linux-64"]

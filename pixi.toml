@@ -1,6 +1,6 @@
 [workspace]
 name = "bettamt"
-version = "1.0.0"
+version = "1.0.1"
 description = "BettaMt mitogenome agent skill: preflight -> run (manual bash recipes default, Nextflow runner opt-in) -> qc -> debug, with CPU-only smoke tests."
 channels = ["conda-forge", "bioconda"]
 platforms = ["linux-64"]

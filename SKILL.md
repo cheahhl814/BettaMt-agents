@@ -1,8 +1,8 @@
 ---
 name: bettamt
 description: Agent skill bundle for the BettaMt mitogenome workflow (vertebrate mitogenome assembly from ONT long reads or Illumina paired short reads, with optional BLAST-based gene annotation). Preflight produces params.json + params.rationale.md with pinned-tool evidence; the default runner is manual bash recipes (single machine, per-stage headers); an opt-in Nextflow runner wraps the same commands for cluster/resume use; qc verifies contiguity, circularity, trnF/tRNA set, coverage and NUMT risk; debug is a signature-library failure interpreter. Use when the user provides raw mito reads plus a reference mitogenome and asks to assemble, annotate, or QC a mitochondrial genome.
-version: 1.0.0
-updated: "2026-10-18"
+version: 1.0.1
+updated: "2026-11-16"
 triggers:
   - "assemble mitogenome"
   - "BettaMt"
@@ -16,7 +16,7 @@ triggers:
 
 # bettamt — BettaMt mitogenome workflow (skill router)
 
-> **v1.0.0** — rebuilt to the skill-forge convention: root router + phase sub-skills + dual runners with **manual bash recipes as the default source of truth** and the Nextflow pipeline as an opt-in executor (`runners/nextflow-runner/`). The recipe↔module lock-step is enforced by `runners/bash-recipes/test_smoke.sh` (31 checks, 0 fail at ship time — it is what caught the `.py`-entry-point, `bbduk.sh` and `_corrected.fasta` drifts during the CPU walkthrough).
+> Root router + phase sub-skills + dual runners: **manual bash recipes are the default source of truth**, the Nextflow pipeline is an opt-in executor (`runners/nextflow-runner/`). The recipe↔module lock-step is enforced by `runners/bash-recipes/test_smoke.sh` — it is what caught the `.py`-entry-point, `bbduk.sh` and `_corrected.fasta` drifts during the CPU walkthrough.
 
 ## Audience
 

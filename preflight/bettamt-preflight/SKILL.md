@@ -1,14 +1,15 @@
 ---
 name: bettamt-preflight
 description: Phase 1 of the bettamt skill bundle — prepare BettaMt run parameters (params.json + params.rationale.md audit trail) from FASTQ plus a reference mitogenome, with pinned-tool evidence (read stats, coverage estimate, tRNAscan taxon markers) and an execution-mode decision (manual bash recipes by default, Nextflow runner opt-in). Use when the user has raw reads and a reference mitogenome but has not yet decided --platform / --size / --rounds / --taxon / how to execute. Triggers: "set up BettaMt", "preflight BettaMt", "what params for BettaMt", "bettamt preflight", "assemble a mitogenome from reads".
-version: 1.0.0
-updated: "2026-10-18"
+version: 1.0.1
+updated: "2026-11-16"
 triggers:
   - "set up BettaMt"
   - "preflight BettaMt"
   - "what params for BettaMt"
   - "bettamt preflight"
   - "assemble mitogenome from reads"
+disable-model-invocation: true
 ---
 
 # bettamt-preflight — BettaMt parameter preparation

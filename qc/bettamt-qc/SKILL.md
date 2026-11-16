@@ -1,8 +1,8 @@
 ---
 name: bettamt-qc
 description: Phase 3 of the bettamt skill bundle — quality-check a finished BettaMt mitogenome (assembly QC: contiguity, circularity, tRNA set, coverage/NUMT risk, identity to reference; plus annotation QC for runs that used a reference GFF/GenBank). Works on outputs of BOTH runners — manual bash-recipe runs and the opt-in Nextflow runner. Use after a successful run, or when the user asks whether their mitogenome is complete, circular, NUMT-free, or publishable. Triggers: "bettamt QC", "check my mitogenome", "is the mitogenome complete", "post-assembly QC", "annotation QC", "bettamt report".
-version: 1.0.0
-updated: "2026-10-18"
+version: 1.0.1
+updated: "2026-11-16"
 triggers:
   - "bettamt QC"
   - "check my mitogenome"
@@ -10,6 +10,7 @@ triggers:
   - "post-assembly QC"
   - "annotation QC"
   - "bettamt report"
+disable-model-invocation: true
 ---
 
 # bettamt-qc — BettaMt post-assembly quality control

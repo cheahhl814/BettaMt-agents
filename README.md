@@ -1,12 +1,12 @@
 # BettaMt-agents — agentic mitogenome assembly, annotation & QC
 
-> **Skill bundle v1.0.0** — rebuilt to the skill-forge convention (root router +
+> **Skill bundle v1.0.1** — rebuilt to the skill-forge convention (root router +
 > phase sub-skills + dual runners) with **manual bash recipes as the default
 > execution path** and the Nextflow pipeline demoted to an opt-in cluster runner.
 > Predecessor layout: `.agents/skills/*` (legacy BettaMt-pattern skills, now
 > folded into `preflight/ run/ qc/ debug/` under the same commit history).
 
-![agents](https://img.shields.io/badge/agent-skill--forge-blue) ![version](https://img.shields.io/badge/version-1.0.0-blue) ![platform](https://img.shields.io/badge/platform-linux--64-green)
+![agents](https://img.shields.io/badge/agent-skill--forge-blue) ![version](https://img.shields.io/badge/version-1.0.1-blue) ![platform](https://img.shields.io/badge/platform-linux--64-green)
 
 ## Contents
 

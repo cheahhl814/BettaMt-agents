@@ -30,3 +30,10 @@ battle-test-report.md
 preflight.md
 skill-built.md
 docs-corpus/.fingerprints/
+
+# Local code-index artifact (regenerable)
+.codebase-index/
+
+# Python bytecode
+__pycache__/
+*.pyc

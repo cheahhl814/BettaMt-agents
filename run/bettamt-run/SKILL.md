@@ -1,14 +1,15 @@
 ---
 name: bettamt-run
 description: Phase 2 of the bettamt skill bundle — execute the BettaMt mitogenome workflow using the runner selected at preflight. Default is the manual bash-recipes path (runners/bash-recipes/run_ont.sh / run_illumina.sh, per-stage headers, pinned pixi env); the opt-in Nextflow runner (runners/nextflow-runner/main.nf with -profile/-c override) is used for cluster or resume-heavy workflows. Also routes between pipeline stages, tracks completion state from the filesystem, and orchestrates annotate_genes.sh when a reference annotation was supplied. Triggers "run BettaMt", "bettamt run", "execute mitogenome assembly", "assemble this mito genome".
-version: 1.0.0
-updated: "2026-10-18"
+version: 1.0.1
+updated: "2026-11-16"
 triggers:
   - "run BettaMt"
   - "bettamt run"
   - "execute mitogenome assembly"
   - "assemble this mito genome"
   - "continue BettaMt run"
+disable-model-invocation: true
 ---
 
 # bettamt-run — BettaMt end-to-end executor (manual-first)
