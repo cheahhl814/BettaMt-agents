@@ -27,6 +27,10 @@ the result — with the agent guided phase-by-phase
 (preflight → run → qc → debug) and every non-obvious decision gated behind an
 Evidence → Recommend → Options ask-user stop point.
 
+![BettaMt metro map — ONT and Illumina routes through shared FIRSTGENE/CIRCLATOR stations to polishing, QC and optional annotation](metro-map.png)
+
+*Pipeline metro map (from the TBCG 2026 Waseri deck; both execution paths, shared stations, and the optional annotation spur).*
+
 | Path | Reads | Stages |
 |---|---|---|
 | **ONT** (long reads) | single FASTQ | bait & remap (seqkit → bbduk → minimap2 → samtools) → Flye `--meta` assembly → GetOrganelle graph extraction + circlator clean → trnF extraction (tRNAscan-SE) → circlator fixstart → racon polish |
